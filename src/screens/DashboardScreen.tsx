@@ -1,13 +1,36 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
+import { MaterialIcons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
+import React, { useEffect, useLayoutEffect, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ImageBackground,
+  Alert,
+} from "react-native";
+import { Image } from "react-native";
+import { useAuth } from "../services/authService/AuthContext";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { RootStackParamList } from "../../App";
+import useSpotifySleepTracks from "../hooks/useSpotify";
 
 const COLORS = {
-  background: '#0d1b2a',
-  text: '#ffffff',
-  buttonBackground: '#6A5ACD',
-  buttonText: '#ffffff',
-  cardBackground: 'rgba(255, 255, 255, 0.1)',
-  shadow: '#000000',
+  night: {
+    background: "#0d1b2a",
+    text: "#ffffff",
+    buttonBackground: "rgba(0, 035, 066, 0.7)",
+    cardBackground: "rgba(255, 255, 255, 0.2)",
+    overlay: "width: 100,  90,1005, 0.5)",
+  },
+  day: {
+    background: "#87CEEB",
+    text: "#ffffff",
+    buttonBackground: "rgba(70, 130, 180, 0.9)",
+    cardBackground: "rgba(255, 255, 255, 0.7)",
+    overlay: "rgba(70, 130, 180, 0.5)",
+  },
 };
 
 const SIZES = {
@@ -19,91 +42,216 @@ const SIZES = {
   cardPadding: 20,
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    alignItems: 'center',
-    marginTop: 50,
-  },
-  greeting: {
-    fontSize: SIZES.fontSize,
-    color: COLORS.text,
-    fontWeight: 'bold',
-  },
-  time: {
-    fontSize: SIZES.titleFontSize,
-    color: COLORS.text,
-    fontWeight: 'bold',
-    marginTop: 10,
-  },
-  astronautContainer: {
-    alignItems: 'center',
-  },
-  astronautCircle: {
-    width: 150,
-    height: 150,
-    borderRadius: SIZES.borderRadius,
-    backgroundColor: COLORS.cardBackground,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  timer: {
-    fontSize: SIZES.fontSize,
-    color: COLORS.text,
-  },
-  sleepButton: {
-    backgroundColor: COLORS.buttonBackground,
-    paddingVertical: SIZES.padding,
-    paddingHorizontal: 40,
-    borderRadius: 30,
-  },
-  sleepButtonText: {
-    fontSize: 18,
-    color: COLORS.buttonText,
-    fontWeight: 'bold',
-  },
-  navigationBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    paddingVertical: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  },
-});
+const createStyles = (isNight: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      justifyContent: "space-between",
+      alignItems: "center",
+      backgroundColor: isNight
+        ? COLORS.night.background
+        : COLORS.day.background,
+    },
+    header: {
+      alignItems: "center",
+      marginTop: 100,
+    },
+    greeting: {
+      fontSize: SIZES.fontSize,
+      color: isNight ? COLORS.night.text : COLORS.day.text,
+      fontWeight: "bold",
+    },
+    time: {
+      fontSize: SIZES.titleFontSize,
+      color: isNight ? COLORS.night.text : COLORS.day.text,
+      fontWeight: "bold",
+      marginTop: 10,
+    },
+    astronautContainer: {
+      alignItems: "center",
+    },
+    astronautCircle: {
+      width: 150,
+      height: 150,
+      borderRadius: SIZES.borderRadius,
+      backgroundColor: isNight
+        ? COLORS.night.cardBackground
+        : COLORS.day.cardBackground,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: 20,
+    },
+    timer: {
+      fontSize: SIZES.fontSize,
+      color: isNight ? COLORS.night.text : COLORS.day.text,
+    },
+    sleepButton: {
+      backgroundColor: isNight
+        ? COLORS.night.buttonBackground
+        : COLORS.day.buttonBackground,
+      paddingVertical: SIZES.padding,
+      paddingHorizontal: 40,
+      borderRadius: 30,
+    },
+    sleepButtonText: {
+      fontSize: 18,
+      color: "#ffffff",
+      fontWeight: "bold",
+    },
+    navigationBar: {
+      paddingBottom: 30,
+      flexDirection: "row",
+      justifyContent: "space-around",
+      width: "100%",
+      paddingVertical: 20,
+      backgroundColor: isNight
+        ? "rgba(0, 0, 0, 0.7)"
+        : "rgba(255, 255, 255, 0.7)",
+    },
+  });
+
+type DashBoardScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  "Dashboard"
+>;
 
 const SleepTracker = () => {
+  const navigation = useNavigation<DashBoardScreenNavigationProp>();
+  const { logout } = useAuth();
+
+  const [time, setTime] = useState(
+    new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  );
+
+  const isNight = time.includes("PM");
+
+  const styles = createStyles(isNight);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => null,
+      gestureEnabled: false,
+    });
+  }, [navigation]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTime(
+        new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      );
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <ImageBackground 
-      source={{ uri: 'https://example.com/night-sky-background.jpg' }} // Cambia esto a tu fondo de estrellas
+    <ImageBackground
+      source={{
+        uri: isNight
+          ? "https://i.pinimg.com/736x/e7/fd/7f/e7fd7f895a6569fe14b094f0eff5f1ef.jpg"
+          : "https://i.pinimg.com/736x/08/45/3f/08453f5f82b8c1ac9dcf2fd26bef8f18.jpg",
+      }}
       style={styles.container}
     >
+      <StatusBar style={"light"} />
       <View style={styles.header}>
-        <Text style={styles.greeting}>Good Night</Text>
-        <Text style={styles.time}>20:30</Text>
+        <Text style={styles.greeting}>
+          {isNight ? "Good Night" : "Good Morning"}
+        </Text>
+        <Text style={styles.time}>{time}</Text>
       </View>
 
       <View style={styles.astronautContainer}>
         <View style={styles.astronautCircle}>
-          <Text style={{ color: COLORS.text, fontSize: 80 }}>🛌</Text>
-          {/* Cambia este ícono por la animación del astronauta */}
+          {isNight ? (
+            <Image
+              source={require("../../assets/icons/moon.png")}
+              style={{ width: 100, height: 100 }}
+            />
+          ) : (
+            <Image
+              source={require("../../assets/icons/sun.png")}
+              style={{ width: 100, height: 100 }}
+            />
+          )}
         </View>
-        <Text style={styles.timer}>04:00</Text>
+        <Text style={styles.timer}></Text>
       </View>
 
       <TouchableOpacity style={styles.sleepButton}>
-        <Text style={styles.sleepButtonText}>START SLEEPING</Text>
+        <Text style={styles.sleepButtonText}>
+          {isNight ? "START SLEEPING" : "START DAY"}
+        </Text>
       </TouchableOpacity>
 
       <View style={styles.navigationBar}>
-        <Text style={{ color: COLORS.text, fontSize: 30 }}>🏠</Text>
-        <Text style={{ color: COLORS.text, fontSize: 30 }}>🌙</Text>
-        <Text style={{ color: COLORS.text, fontSize: 30 }}>📊</Text>
+        <TouchableOpacity
+          onPress={() => {
+            navigation.replace("Tracks");
+          }}
+        >
+          <MaterialIcons
+            name="music-note"
+            size={36}
+            color={
+              isNight
+                ? COLORS.day.buttonBackground
+                : COLORS.night.buttonBackground
+            }
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
+            navigation.navigate("UserData");
+          }}
+        >
+          <MaterialIcons
+            name={isNight ? "nightlight" : "light-mode"}
+            size={36}
+            color={
+              isNight
+                ? COLORS.day.buttonBackground
+                : COLORS.night.buttonBackground
+            }
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
+            Alert.alert("Confirm Logout", "Are you sure you want to log out?", [
+              {
+                text: "Cancel",
+              },
+              {
+                text: "Confirm",
+                onPress: async () => {
+                  try {
+                    await logout();
+                    navigation.pop(1);
+                    navigation.replace("Login");
+                  } catch (error) {
+                    console.error("Error logging out", error);
+                  }
+                },
+              },
+            ]);
+          }}
+        >
+          <MaterialIcons
+            name="exit-to-app"
+            size={36}
+            color={
+              isNight
+                ? COLORS.day.buttonBackground
+                : COLORS.night.buttonBackground
+            }
+          />
+        </TouchableOpacity>
       </View>
     </ImageBackground>
   );
