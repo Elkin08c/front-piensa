@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -11,10 +11,9 @@ import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../../App";
 import styles from "./styles";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import { MaterialIcons } from "@expo/vector-icons";
 import * as Animatable from "react-native-animatable";
-import apiservice from "../services/apiservice";
-import { AuthResponse } from "../interfaces/AuthResponse";
+import { useAuth } from "../services/authService/AuthContext";
 
 type LoginScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -25,9 +24,8 @@ const LoginScreen = () => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [disable, setDisable] = useState(false);
   const [secureTextEntry, setSecureTextEntry] = useState(true);
+  const { login, isLoading, user } = useAuth();
 
   const validateInputs = () => {
     if (!email || !password) {
@@ -40,26 +38,18 @@ const LoginScreen = () => {
     return true;
   };
 
+  useEffect(() => {
+    if (user) navigation.replace("Dashboard");
+  }, [user]);
+
   const handleLogin = async () => {
     if (!validateInputs()) return;
-
-    setLoading(true);
-    setDisable(true);
     try {
-      const response = await apiservice.post<AuthResponse>("/auth/login", {
-        email,
-        password,
-      });
-      const { accessToken } = response.data;
-      if (accessToken) {
-        navigation.navigate("Dashboard");
-      }
+      await login({ email, password });
+      navigation.replace("Dashboard");
     } catch (err) {
       console.log(err);
       Alert.alert("Error", "Correo electrónico o contraseña incorrectos.");
-    } finally {
-      setLoading(false);
-      setDisable(false);
     }
   };
 
@@ -78,6 +68,7 @@ const LoginScreen = () => {
           placeholder="Email"
           value={email}
           onChangeText={setEmail}
+          keyboardType="email-address"
           placeholderTextColor={styles.placeholderText.color}
         />
         <View style={{ position: "relative" }}>
@@ -93,7 +84,7 @@ const LoginScreen = () => {
             style={styles.togglePassword}
             onPress={() => setSecureTextEntry(!secureTextEntry)}
           >
-            <Icon
+            <MaterialIcons
               name={secureTextEntry ? "visibility" : "visibility-off"}
               size={24}
               color="gray"
@@ -107,13 +98,13 @@ const LoginScreen = () => {
         >
           <TouchableOpacity
             style={styles.button}
-            disabled={disable}
+            disabled={isLoading}
             onPress={handleLogin}
           >
             <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
         </Animatable.View>
-        {loading && <ActivityIndicator size="large" color="#0000ff" />}
+        {isLoading && <ActivityIndicator size="large" color="#0000ff" />}
         <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
           <Text style={styles.linkText}>Create Account</Text>
         </TouchableOpacity>
