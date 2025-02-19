@@ -187,14 +187,16 @@ const SleepTracker = () => {
   }) => {
     try {
       await apiservice.post(`/sleep/${user.userId}`, payload);
-      Alert.alert("Success", "Sleep data saved successfully");
+      Alert.alert(
+        "Hora de sueño añadida",
+        "Tu hora de sueño se añadió correctamente"
+      );
     } catch (error) {
       console.error("Error sending sleep data", error);
-      Alert.alert("Error", "Failed to save sleep data");
+      Alert.alert("Error", "Ocurrió un error al guardar tu hora de sueño");
     }
   };
 
-  // Android: inline pickers
   const onChangeStart = (event: any, selectedDate?: Date) => {
     if (Platform.OS === "android") {
       if (event.type === "set" && selectedDate) {
